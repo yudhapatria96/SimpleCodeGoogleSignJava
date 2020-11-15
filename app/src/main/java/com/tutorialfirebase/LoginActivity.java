@@ -2,6 +2,7 @@ package com.tutorialfirebase;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import android.content.Intent;
@@ -30,8 +31,10 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
-public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener{
+public class LoginActivity extends AppCompatActivity {
     ConstraintLayout googleButton;
     GoogleSignInClient mGoogleSignInClient;
     private int RC_SIGN_IN = 199;
@@ -39,13 +42,19 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     private FirebaseAuth mAuth;
     GoogleSignInOptions gso;
     private int RESOLVE_CONNECTION_REQUEST_CODE = 202;
+    private DatabaseReference mDatabase;
+
     // ...
 // Initialize Firebase Auth
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        getDelegate().setLocalNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("message");
+        mDatabase = FirebaseDatabase.getInstance().getReference();
         googleButton = findViewById(R.id.btn_google);
         mAuth = FirebaseAuth.getInstance();
 
@@ -53,10 +62,6 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
                 .requestIdToken(getString(R.string.default_web_client_id))
                 .requestEmail()
                 .build();
-
-
-
-
 
         googleButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -121,7 +126,6 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
                             updateUI(null);
                         }
 
-                        // ...
                     }
                 });
     }
@@ -129,24 +133,25 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     private void updateUI(FirebaseUser user){
         if(user!= null){
             Toast.makeText(LoginActivity.this, "Welcome "+ user.getDisplayName().toString(), Toast.LENGTH_LONG).show();
+            writeNewUser(user.getUid(), user.getDisplayName(), user.getEmail());
             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
             startActivity(intent);
+            finish();
         }else{
-            Toast.makeText(LoginActivity.this, "Silahkan Login Kembali ", Toast.LENGTH_LONG).show();
+            if(mGoogleSignInClient!=null) {
+                Toast.makeText(LoginActivity.this, "Silahkan Login Kembali ", Toast.LENGTH_LONG).show();
+            }
 
         }
     }
 
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        if (connectionResult.hasResolution()) {
-            try {
-                connectionResult.startResolutionForResult(this, RESOLVE_CONNECTION_REQUEST_CODE);
-            } catch (IntentSender.SendIntentException e) {
-                // Unable to resolve, message user appropriately
-            }
-        } else {
-            GooglePlayServicesUtil.getErrorDialog(connectionResult.getErrorCode(), this, 0).show();
-        }
+
+    private void writeNewUser(String userId, String name, String email) {
+//        User user = new User(name, email);
+//        mDatabase.child("users").child(userId).setValue(user);
+
+        mDatabase.child("users").child(userId).child("username").setValue(name);
+        mDatabase.child("users").child(userId).child("email").setValue(email);
+
     }
 }
